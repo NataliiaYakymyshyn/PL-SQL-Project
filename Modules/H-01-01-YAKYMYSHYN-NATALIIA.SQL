@@ -1,0 +1,12 @@
+DECLARE
+    V_YEAR NUMBER := 2027;
+    V_CHECK_YEAR NUMBER;
+BEGIN
+    V_CHECK_YEAR := MOD(V_YEAR, 4); 
+    IF V_CHECK_YEAR = 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Leap year');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Not leap year');
+    END IF;
+END;
+/
