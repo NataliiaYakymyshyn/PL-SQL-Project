@@ -1,0 +1,7 @@
+CREATE TABLE log_table (
+  id NUMBER,
+  proc_name VARCHAR2(50),
+  text VARCHAR2(2000) DEFAULT NULL,
+  log_date DATE DEFAULT SYSDATE, 
+  CONSTRAINT id_pk PRIMARY KEY(id)
+)
