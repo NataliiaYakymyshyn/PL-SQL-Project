@@ -38,11 +38,12 @@ CREATE OR REPLACE PACKAGE BODY log_utils AS
                       p_sqlerrm IN VARCHAR2,
                       p_text IN VARCHAR2 DEFAULT NULL) IS
   v_text VARCHAR2(2000);
+  v_sqlerrm VARCHAR2(2000);
 
   BEGIN 
-    p_sqlerrm := REPLACE(p_sqlerrm, CHR(10), SQLERRM);
+    v_sqlerrm := REPLACE(p_sqlerrm, CHR(10), ' ');
     IF p_text IS NULL THEN
-        v_text := 'Error in procedure: ' || p_proc_name || ' - Error: ' || p_sqlerrm;
+        v_text := 'Error in procedure: ' || p_proc_name || ' - Error: ' || v_sqlerrm;
         ELSE
         v_text := p_text;    
     END IF;
