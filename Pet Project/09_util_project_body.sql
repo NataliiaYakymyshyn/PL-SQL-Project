@@ -50,7 +50,7 @@ create or replace PACKAGE BODY util_project AS
         v_salary_error EXCEPTION;  
     BEGIN
         log_utils.log_start(p_proc_name => 'add_employee');    
-        work_life_balance();    
+        util_project.work_life_balance();    
 
         SELECT COUNT(*)
         INTO v_is_exist
@@ -131,7 +131,7 @@ create or replace PACKAGE BODY util_project AS
        v_department_id NUMBER;
     BEGIN
        log_utils.log_start(p_proc_name => 'fire_an_employee');
-       work_life_balance();
+       util_project.work_life_balance();
        
             SELECT COUNT(*)
             INTO v_is_exist
