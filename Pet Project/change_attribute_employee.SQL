@@ -42,16 +42,16 @@ BEGIN
     END IF;
 
     v_sql_update := 'UPDATE employees
-        SET first_name = NVL(:1, first_name),
-            last_name = NVL(:2, last_name),
-            email = NVL(:3, email),
-            phone_number = NVL(:4, phone_number),
-            job_id = NVL(:5, job_id),
-            salary = NVL(:6, salary),
-            commission_pct = NVL(:7, commission_pct),
-            manager_id = NVL(:8, manager_id),
-            department_id = NVL(:9, department_id)
-        WHERE employee_id = :10';
+        SET first_name = NVL(:p_first_name, first_name),
+            last_name = NVL(:p_last_name, last_name),
+            email = NVL(:p_email, email),
+            phone_number = NVL(:p_phone_number, phone_number),
+            job_id = NVL(:p_job_id, job_id),
+            salary = NVL(:p_salary, salary),
+            commission_pct = NVL(:p_commission_pct, commission_pct),
+            manager_id = NVL(:p_manager_id, manager_id),
+            department_id = NVL(:p_department_id, department_id)
+        WHERE employee_id = :p_employee_id';
 
     EXECUTE IMMEDIATE v_sql_update
     USING 
