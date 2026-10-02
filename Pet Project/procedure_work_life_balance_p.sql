@@ -5,7 +5,7 @@ create or replace procedure work_life_balance is
         v_is_not_working_hours EXCEPTION;
 
 begin
-    log_utils.log_start(p_proc_name => 'work_balance');
+    log_utils.log_start(p_proc_name => 'work_life_balance');
     
     v_time := TO_CHAR(SYSDATE, 'HH24:MI');
     v_day_num := TO_NUMBER(TO_CHAR(SYSDATE, 'd'));
