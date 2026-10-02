@@ -1,8 +1,6 @@
-CREATE OR REPLACE TYPE rec_value_list AS OBJECT (value_list VARCHAR2(100));
-/
+TYPE rec_value_list IS RECORD (value_list VARCHAR2(100));
+TYPE tab_value_list IS TABLE OF rec_value_list;
 
-CREATE OR REPLACE TYPE tab_value_list AS TABLE OF rec_value_list;
-/
 
 CREATE OR REPLACE FUNCTION table_from_list(p_list_val  IN VARCHAR2,
                                            p_separator IN VARCHAR2 DEFAULT ',') RETURN tab_value_list PIPELINED IS
