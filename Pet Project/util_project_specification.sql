@@ -1,7 +1,9 @@
-CREATE OR REPLACE PACKAGE util_project AS
+create or replace PACKAGE util_project AS
 
-    procedure work_life_balance;
+-- Procedure used in several other procedures
+    PROCEDURE work_life_balance;
 
+-- Employee's updates
     PROCEDURE add_employee(
         p_first_name       IN VARCHAR2,
         p_last_name        IN VARCHAR2,
@@ -36,6 +38,9 @@ CREATE OR REPLACE PACKAGE util_project AS
        p_status      IN VARCHAR2 DEFAULT 'Terminated'
     );
 
+-- Copy tables
+    TYPE rec_value_list IS RECORD (value_list VARCHAR2(100));
+    TYPE tab_value_list IS TABLE OF rec_value_list;
     FUNCTION table_from_list(p_list_val  IN VARCHAR2,
                                            p_separator IN VARCHAR2 DEFAULT ',') RETURN tab_value_list PIPELINED;
 
@@ -48,7 +53,7 @@ CREATE OR REPLACE PACKAGE util_project AS
         po_result       OUT VARCHAR2
     );
 
-
+-- Get currency
     FUNCTION get_needed_curr(p_valcode IN VARCHAR2 DEFAULT 'USD',
                                            p_date    IN DATE DEFAULT SYSDATE) RETURN VARCHAR2;
 
@@ -57,4 +62,3 @@ CREATE OR REPLACE PACKAGE util_project AS
 
 
 END util_project;
-/

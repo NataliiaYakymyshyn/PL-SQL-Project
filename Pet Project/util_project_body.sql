@@ -1,12 +1,13 @@
-CREATE OR REPLACE PACKAGE BODY util_project AS
+create or replace PACKAGE BODY util_project AS
 
-    procedure work_life_balance is
+
+    PROCEDURE work_life_balance is
             v_is_exist NUMBER;
             v_time VARCHAR2(10);
             v_day_num NUMBER;
             v_is_not_working_hours EXCEPTION;
 
-    begin
+    BEGIN
         log_utils.log_start(p_proc_name => 'work_life_balance');
 
         v_time := TO_CHAR(SYSDATE, 'HH24:MI');
@@ -26,9 +27,8 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
             WHEN OTHERS THEN
                 log_utils.log_error(p_proc_name => 'work_life_balance', p_sqlerrm => SQLERRM);
                 RAISE;
-
-
-    end work_life_balance;
+                
+    END work_life_balance;
 
 
     PROCEDURE add_employee(
@@ -55,7 +55,7 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
     BEGIN
         log_utils.log_start(p_proc_name => 'add_employee');
     
-        work_life_balance();
+        util_project.work_life_balance();
     
         SELECT COUNT(*)
         INTO v_is_exist
@@ -140,7 +140,7 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
 
     BEGIN
         log_utils.log_start(p_proc_name => 'change_attribute_employee');
-        work_life_balance();
+        util_project.work_life_balance();
 
         SELECT COUNT(*)
         INTO v_exist
@@ -239,7 +239,7 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
        v_department_id NUMBER;
     BEGIN
        log_utils.log_start(p_proc_name => 'fire_an_employee');
-       work_life_balance();
+       util_project.work_life_balance();
             SELECT COUNT(*)
             INTO v_is_exist
             FROM employees ee
@@ -317,14 +317,13 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
     END fire_an_employee;
 
 
-
     FUNCTION table_from_list(p_list_val  IN VARCHAR2,
                                                p_separator IN VARCHAR2 DEFAULT ',') RETURN tab_value_list PIPELINED IS
       out_rec tab_value_list := tab_value_list();
       l_cur   SYS_REFCURSOR;
     BEGIN
       OPEN l_cur FOR
-        SELECT rec_value_list(TRIM(REGEXP_SUBSTR(p_list_val, '[^'||p_separator||']+', 1, LEVEL))) AS cur_value
+        SELECT (TRIM(REGEXP_SUBSTR(p_list_val, '[^'||p_separator||']+', 1, LEVEL))) AS cur_value
           FROM dual
          CONNECT BY LEVEL <= REGEXP_COUNT(p_list_val, p_separator) + 1;
       BEGIN
@@ -382,7 +381,7 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
                       FROM all_tab_columns
                      WHERE owner = v_source
                        AND table_name IN (SELECT UPPER(value_list)
-                                            FROM TABLE(util.table_from_list(p_list_val => p_list_table))))
+                                            FROM TABLE(util_project.table_from_list(p_list_val => p_list_table))))
              GROUP BY table_name
         ) LOOP
             BEGIN
@@ -411,7 +410,6 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
         po_result := 'Copied: ' || v_ok_cnt || ', skipped: ' || v_err_cnt;
         to_log(p_appl_proc => 'copy_table', p_message => 'Finish. ' || po_result);
     END copy_table;
-
 
 
     FUNCTION get_needed_curr(p_valcode IN VARCHAR2 DEFAULT 'USD',
@@ -444,11 +442,21 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
         END;
 
         FOR cc IN (SELECT value_list AS curr
-                     FROM TABLE(table_from_list(p_list_val => v_list_currencies))) LOOP
+                     FROM TABLE(util_project.table_from_list(p_list_val => v_list_currencies))) LOOP
 
-            INSERT INTO cur_exchange (r030, txt, rate, cur, exchangedate)
-            SELECT r030, txt, rate, cur, exchangedate
-              FROM TABLE(get_needed_curr(p_currency => cc.curr));
+                    INSERT INTO cur_exchange (r030, txt, rate, cur, exchangedate)
+                    SELECT tt.r030,
+                           tt.txt,
+                           tt.rate,
+                           tt.cur,
+                           TO_DATE(tt.exchangedate, 'DD.MM.YYYY')
+                      FROM (SELECT get_needed_curr(p_valcode => cc.curr) AS json_value FROM dual) j
+                     CROSS JOIN JSON_TABLE(j.json_value, '$[*]'
+                                  COLUMNS (r030         NUMBER        PATH '$.r030',
+                                           txt          VARCHAR2(100) PATH '$.txt',
+                                           rate         NUMBER        PATH '$.rate',
+                                           cur          VARCHAR2(10)  PATH '$.cc',
+                                           exchangedate VARCHAR2(20)  PATH '$.exchangedate')) tt;
 
         END LOOP;
 
@@ -459,4 +467,3 @@ CREATE OR REPLACE PACKAGE BODY util_project AS
 
 
 END util_project;
-/
