@@ -104,17 +104,17 @@ create or replace PACKAGE BODY util_project AS
         WHEN v_non_existent_job THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
                                p_sqlerrm => 'Non-existent job_id ' || p_job_id || '');
-            RAISE_APPLICATION_ERROR(-20001, 'Non-existent job_id ' || p_job_id || '');
+            RAISE_APPLICATION_ERROR(-20002, 'Non-existent job_id ' || p_job_id || '');
             
         WHEN v_non_existent_department THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
                                p_sqlerrm => 'Non-existent department_id ' || p_department_id || '');
-            RAISE_APPLICATION_ERROR(-20001, 'Non-existent department_id ' || p_department_id || '');
+            RAISE_APPLICATION_ERROR(-20003, 'Non-existent department_id ' || p_department_id || '');
             
         WHEN v_salary_error THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
                                p_sqlerrm => 'Salary ' || p_salary || ' is out of range for job_id ' || p_job_id || '');
-            RAISE_APPLICATION_ERROR(-20001, 'Salary ' || p_salary || ' is out of range for job_id ' || p_job_id || '.');
+            RAISE_APPLICATION_ERROR(-20004, 'Salary ' || p_salary || ' is out of range for job_id ' || p_job_id || '.');
             
         WHEN OTHERS THEN
             log_utils.log_error(p_proc_name => 'add_employee', p_sqlerrm => SQLERRM);
@@ -204,14 +204,14 @@ create or replace PACKAGE BODY util_project AS
                 p_proc_name => 'change_attribute_employee',
                 p_sqlerrm => 'Non-existent employee_id ' || p_employee_id || ''
             );
-            RAISE_APPLICATION_ERROR(-20001, 'Non-existent employee_id ' || p_employee_id || '');
+            RAISE_APPLICATION_ERROR(-20005, 'Non-existent employee_id ' || p_employee_id || '');
 
         WHEN v_all_null THEN
             log_utils.log_error(
                 p_proc_name => 'change_attribute_employee',
                 p_sqlerrm => 'At least one parameter should be provided: p_first_name, p_last_name, p_email, p_phone_number, p_job_id, p_salary, p_commission_pct, p_manager_id, p_department_id'
             );
-            RAISE_APPLICATION_ERROR(-20002, 'At least one parameter should be provided: p_first_name, p_last_name, p_email, p_phone_number, p_job_id, p_salary, p_commission_pct, p_manager_id, p_department_id');
+            RAISE_APPLICATION_ERROR(-20006, 'At least one parameter should be provided: p_first_name, p_last_name, p_email, p_phone_number, p_job_id, p_salary, p_commission_pct, p_manager_id, p_department_id');
 
         WHEN OTHERS THEN
             log_utils.log_error(
@@ -314,7 +314,7 @@ create or replace PACKAGE BODY util_project AS
         WHEN v_non_existent_employee_id THEN
               log_utils.log_error(p_proc_name => 'fire_an_employee', 
                                  p_sqlerrm => 'Non-existent employee_id ' || p_employee_id || '');
-              RAISE_APPLICATION_ERROR(-20001, 'Employee ' || p_employee_id || ' does not exist');
+              RAISE_APPLICATION_ERROR(-20007, 'Employee ' || p_employee_id || ' does not exist');
         WHEN OTHERS THEN
               log_utils.log_error(p_proc_name => 'fire_an_employee', p_sqlerrm => SQLERRM);
               ROLLBACK;
@@ -363,17 +363,18 @@ create or replace PACKAGE BODY util_project AS
     ) IS
         v_source        VARCHAR2(128) := UPPER(p_source_scheme);
         v_target        VARCHAR2(128) := UPPER(p_target_scheme);
-        v_table_cnt     NUMBER := 0;  
-        v_found_cnt     NUMBER := 0;  
-        v_ok_cnt        NUMBER := 0;  
-        v_exist_cnt     NUMBER := 0;  
-        v_err_cnt       NUMBER := 0;  
-        v_skip_cnt      NUMBER := 0; 
+        v_table_cnt     NUMBER;  
+        v_found_cnt     NUMBER;  
+        v_ok_cnt        NUMBER;  
+        v_exist_cnt     NUMBER;  
+        v_err_cnt       NUMBER;  
+        v_skip_cnt      NUMBER; 
         v_exists        NUMBER;
         no_p_list_table EXCEPTION;
     BEGIN
         log_utils.log_start(p_proc_name => 'copy_table');
-    
+        util_project.work_life_balance();
+        
         SELECT COUNT(DISTINCT UPPER(TRIM(value_list)))
           INTO v_table_cnt
           FROM TABLE(util_project.table_from_list(p_list_val => p_list_table))
@@ -454,7 +455,7 @@ create or replace PACKAGE BODY util_project AS
         WHEN no_p_list_table THEN
             log_utils.log_error(p_proc_name => 'copy_table',
                                 p_sqlerrm   => 'p_list_table parameter is empty');
-            RAISE_APPLICATION_ERROR(-20002, 'p_list_table parameter should be specified.');
+            RAISE_APPLICATION_ERROR(-20008, 'p_list_table parameter should be specified.');
     END copy_table;
 
 
@@ -485,7 +486,7 @@ create or replace PACKAGE BODY util_project AS
             WHEN OTHERS THEN
                 log_utils.log_error(p_proc_name => 'api_nbu_sync',
                                     p_sqlerrm   => SQLERRM);
-                RAISE_APPLICATION_ERROR(-20001,
+                RAISE_APPLICATION_ERROR(-20009,
                     'Error with parameter list_currencies: ' || SQLERRM);
         END;
 
