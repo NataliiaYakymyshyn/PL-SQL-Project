@@ -307,17 +307,21 @@ create or replace PACKAGE BODY util_project AS
           DELETE FROM employees
            WHERE employee_id = p_employee_id;
 
-        EXCEPTION
-           WHEN v_non_existent_employee_id THEN
+
+        util_project.work_life_balance();
+        log_utils.log_finish(p_proc_name => 'fire_an_employee');
+
+
+    EXCEPTION
+        WHEN v_non_existent_employee_id THEN
               log_utils.log_error(p_proc_name => 'fire_an_employee', 
                                  p_sqlerrm => 'Non-existent employee_id ' || p_employee_id || '');
               RAISE_APPLICATION_ERROR(-20001, 'Employee ' || p_employee_id || ' does not exist');
-           WHEN OTHERS THEN
+        WHEN OTHERS THEN
               log_utils.log_error(p_proc_name => 'fire_an_employee', p_sqlerrm => SQLERRM);
               ROLLBACK;
               RAISE;
 
-       log_utils.log_finish(p_proc_name => 'fire_an_employee');
     END fire_an_employee;
 
 
@@ -366,7 +370,7 @@ create or replace PACKAGE BODY util_project AS
     BEGIN
         log_utils.log_start(p_proc_name => 'copy_table');
         util_project.work_life_balance();
-        FOR cc IN (
+    FOR cc IN (
             SELECT table_name,
                    'CREATE TABLE ' || v_target || '.' || table_name || ' (' ||
                    LISTAGG(column_name || ' ' || data_type || count_symbol, ', ')
@@ -394,7 +398,7 @@ create or replace PACKAGE BODY util_project AS
                     EXECUTE IMMEDIATE 'INSERT INTO ' || v_target || '.' || cc.table_name ||
                                       ' SELECT * FROM ' || v_source || '.' || cc.table_name;
                     COMMIT;
-                    to_log(p_proc_name => 'copy_table', p_message => 'Table ' || cc.table_name || ' copied successfully ' || 'into ' || v_target || ' from ' || v_source);
+                    to_log(p_appl_proc => 'copy_table', p_message => 'Table ' || cc.table_name || ' copied successfully ' || 'into ' || v_target || ' from ' || v_source);
                 END IF;
 
                 v_ok_cnt := v_ok_cnt + 1;
@@ -411,7 +415,7 @@ create or replace PACKAGE BODY util_project AS
         po_result := 'Copied: ' || v_ok_cnt || ', skipped: ' || v_err_cnt;
         DBMS_OUTPUT.PUT_LINE(po_result);
         COMMIT;
-        log_utils.log_finish(p_proc_name => 'copy_table', p_message => 'Finish. ' || po_result);
+        log_utils.log_finish(p_proc_name => 'copy_table');
     END copy_table;
 
 
@@ -432,7 +436,7 @@ create or replace PACKAGE BODY util_project AS
     BEGIN
         log_utils.log_start(p_proc_name => 'api_nbu_sync');
         util_project.work_life_balance();
-        
+
         BEGIN
             SELECT value_text
               INTO v_list_currencies

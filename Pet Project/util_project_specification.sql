@@ -38,7 +38,7 @@ create or replace PACKAGE util_project AS
        p_status      IN VARCHAR2 DEFAULT 'Terminated'
     );
 
--- Copy tables
+-- Utilities
     TYPE rec_value_list IS RECORD (value_list VARCHAR2(100));
     TYPE tab_value_list IS TABLE OF rec_value_list;
     FUNCTION table_from_list(p_list_val  IN VARCHAR2,
