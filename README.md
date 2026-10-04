@@ -62,7 +62,7 @@ Objects must be created in dependency order:
 | 10 | `util_project_body.sql` | `util_project` | Package body |
 | 11 | `Table_sys_params.sql` | `sys_params` + `JOB_API_NBU_SYNC` | Table + Scheduler job |
 
-**External prerequisites:** HR schema tables (`employees`, `jobs`, `departments`)
+**Prerequisites:** HR schema tables (`employees`, `jobs`, `departments`)
 
 ##  Functional Flows
 
@@ -72,12 +72,11 @@ Every logged event follows the same path: **caller → `log_utils` (procedures f
 
 1. A business procedure calls one of the `log_utils` procedures, passing its own name in `p_proc_name`:
    - `log_utils.log_start` — at the beginning of the procedure
-   - `log_utils.log_finish` — after successful completion (after `COMMIT`)
+   - `log_utils.log_finish` — after successful completion
    - `log_utils.log_error` — in the `EXCEPTION` block, passing `SQLERRM` or a custom error text
 2. `log_utils` builds the message text:
    - if `p_text` is passed, it is used as is;
-   - otherwise a default text is generated: `Start of procedure: …`, `Finish of procedure: …` or `Error in procedure: … - Error: …`;
-   - for errors, line breaks (`CHR(10)`) are removed from `SQLERRM` so the message fits on one line.
+   - otherwise a default text is generated: `Start of procedure: …`, `Finish of procedure: …` or `Error in procedure: … - Error: …`.
 3. `log_utils` calls the standalone procedure `to_log(p_appl_proc, p_message)`.
 4. `to_log` takes the next ID from sequence `log_seq.NEXTVAL`.
 5. `to_log` inserts a row into the `logs` table: `id`, `appl_proc` (procedure name), `message`; `log_date` is filled automatically with `SYSDATE` (column default).
@@ -92,7 +91,7 @@ Result: the `logs` table holds the full execution history of all procedures — 
 1. Each employee-changing procedure (`add_employee`, `change_attribute_employee`, `fire_an_employee`) calls `util_project.work_life_balance` right after `log_start`, **before any data change**.
 2. `work_life_balance` logs its own start via `log_utils.log_start`.
 3. It reads the current day of week (`TO_CHAR(SYSDATE, 'd')`) and time (`TO_CHAR(SYSDATE, 'HH24:MI')`).
-4. If the day is 1–5 and the time is between `08:00` and `18:00`, the procedure ends silently and the caller continues.
+4. If the day is 1–5 and the time is between `18:01` and `07:59` , the procedure ends silently and the caller continues.
 5. Otherwise it raises the internal exception `v_is_not_working_hours`, which:
    - writes an error into `logs` via `log_utils.log_error`;
    - raises `ORA-20001` "You cannot implement changes now…".
@@ -153,14 +152,15 @@ Result: active employees live in `employees`; former employees move to `employee
 #### b) Copy tables between schemas — `util_project.copy_table`
 
 1. `log_utils.log_start('copy_table')` → record in `logs`.
-2. Table names from `p_list_table` are split by `table_from_list` and converted to upper case.
-3. Column metadata is read from the `all_tab_columns` dictionary view for the source schema.
-4. For each table a `CREATE TABLE target.table (col type(size), …)` statement is built with `LISTAGG`, handling `VARCHAR2/CHAR` (length), `NUMBER` (precision, scale) and `DATE`.
-5. `EXECUTE IMMEDIATE` creates the table in the target schema.
-6. If `p_copy_data = TRUE` → `INSERT INTO target.table SELECT * FROM source.table` + `COMMIT`.
-7. Success → counter `v_ok_cnt` +1 and `log_utils.log_finish('copy_table')` → record in `logs`.
-8. Failure on a table (e.g. it already exists) → counter `v_err_cnt` +1, `log_utils.log_error` → record in `logs`, and the loop **continues with the next table**.
-9. `po_result` = `Copied: N, skipped: M`; `log_utils.log_finish('copy_table')` → record in `logs`.
+2. `util_project.work_life_balance` → check working hours.
+3. Table names from `p_list_table` are split by `table_from_list` and converted to upper case.
+4. Column metadata is read from the `all_tab_columns` dictionary view for the source schema.
+5. For each table a `CREATE TABLE target.table (col type(size), …)` statement is built with `LISTAGG`, handling `VARCHAR2/CHAR` (length), `NUMBER` (precision, scale) and `DATE`.
+6. `EXECUTE IMMEDIATE` creates the table in the target schema.
+7. If `p_copy_data = TRUE` → `INSERT INTO target.table SELECT * FROM source.table` + `COMMIT`.
+8. Success → counter `v_ok_cnt` +1 and `log_utils.log_finish('copy_table')` → record in `logs`.
+9. Failure on a table (e.g. it already exists) → counter `v_err_cnt` +1, `log_utils.log_error` → record in `logs`, and the loop **continues with the next table**.
+10. `po_result` = `Copied: N, skipped: M`; `log_utils.log_finish('copy_table')` → record in `logs`.
 
 ---
 
