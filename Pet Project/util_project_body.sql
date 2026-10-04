@@ -27,7 +27,8 @@ create or replace PACKAGE BODY util_project AS
             WHEN OTHERS THEN
                 log_utils.log_error(p_proc_name => 'work_life_balance', p_sqlerrm => SQLERRM);
                 RAISE;
-                
+        
+        log_utils.log_finish(p_proc_name => 'work_life_balance');            
     END work_life_balance;
 
 
@@ -93,8 +94,8 @@ create or replace PACKAGE BODY util_project AS
             p_hire_date, p_job_id, p_salary, p_commission_pct, p_manager_id, p_department_id
         );
     
-        DBMS_OUTPUT.PUT_LINE('Employee "' || p_first_name || ' ' || p_last_name || '" with job "'
-         || p_job_id || '" and department "' || p_department_id || '" has been added successfully.');
+        DBMS_OUTPUT.PUT_LINE('Employee ' || p_first_name || ' ' || p_last_name || ' with job '
+         || p_job_id || ' and department ' || p_department_id || ' has been added successfully.');
         COMMIT;
         log_utils.log_finish(p_proc_name => 'add_employee');
     
@@ -102,18 +103,18 @@ create or replace PACKAGE BODY util_project AS
             
         WHEN v_non_existent_job THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
-                               p_sqlerrm => 'Non-existent job_id "' || p_job_id || '"');
-            RAISE_APPLICATION_ERROR(-20001, 'Non-existent job_id "' || p_job_id || '"');
+                               p_sqlerrm => 'Non-existent job_id ' || p_job_id || '');
+            RAISE_APPLICATION_ERROR(-20001, 'Non-existent job_id ' || p_job_id || '');
             
         WHEN v_non_existent_department THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
-                               p_sqlerrm => 'Non-existent department_id "' || p_department_id || '"');
-            RAISE_APPLICATION_ERROR(-20001, 'Non-existent department_id "' || p_department_id || '"');
+                               p_sqlerrm => 'Non-existent department_id ' || p_department_id || '');
+            RAISE_APPLICATION_ERROR(-20001, 'Non-existent department_id ' || p_department_id || '');
             
         WHEN v_salary_error THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
-                               p_sqlerrm => 'Salary ' || p_salary || ' is out of range for job_id "' || p_job_id || '"');
-            RAISE_APPLICATION_ERROR(-20001, 'Salary ' || p_salary || ' is out of range for job_id "' || p_job_id || '".');
+                               p_sqlerrm => 'Salary ' || p_salary || ' is out of range for job_id ' || p_job_id || '');
+            RAISE_APPLICATION_ERROR(-20001, 'Salary ' || p_salary || ' is out of range for job_id ' || p_job_id || '.');
             
         WHEN OTHERS THEN
             log_utils.log_error(p_proc_name => 'add_employee', p_sqlerrm => SQLERRM);
@@ -161,6 +162,9 @@ create or replace PACKAGE BODY util_project AS
             AND p_department_id IS NULL
         THEN
             log_utils.log_finish(p_proc_name => 'change_attribute_employee');
+            DBMS_OUTPUT.PUT_LINE(
+            'No Updated Employee''s attributes '
+            );
             RAISE v_all_null;
         END IF;
 
@@ -200,9 +204,9 @@ create or replace PACKAGE BODY util_project AS
         WHEN v_non_existent_employee THEN
             log_utils.log_error(
                 p_proc_name => 'change_attribute_employee',
-                p_sqlerrm => 'Non-existent employee_id "' || p_employee_id || '"'
+                p_sqlerrm => 'Non-existent employee_id ' || p_employee_id || ''
             );
-            RAISE_APPLICATION_ERROR(-20001, 'Non-existent employee_id "' || p_employee_id || '"');
+            RAISE_APPLICATION_ERROR(-20001, 'Non-existent employee_id ' || p_employee_id || '');
 
         WHEN v_all_null THEN
             log_utils.log_error(
@@ -306,7 +310,7 @@ create or replace PACKAGE BODY util_project AS
         EXCEPTION
            WHEN v_non_existent_employee_id THEN
               log_utils.log_error(p_proc_name => 'fire_an_employee', 
-                                 p_sqlerrm => 'Non-existent employee_id "' || p_employee_id || '"');
+                                 p_sqlerrm => 'Non-existent employee_id ' || p_employee_id || '');
               RAISE_APPLICATION_ERROR(-20001, 'Employee ' || p_employee_id || ' does not exist');
            WHEN OTHERS THEN
               log_utils.log_error(p_proc_name => 'fire_an_employee', p_sqlerrm => SQLERRM);
@@ -360,9 +364,8 @@ create or replace PACKAGE BODY util_project AS
         v_ok_cnt  NUMBER := 0;
         v_err_cnt NUMBER := 0;
     BEGIN
-        to_log(p_appl_proc => 'copy_table',
-               p_message   => 'Start: ' || v_source || ' -> ' || v_target || ', tables: ' || p_list_table);
-
+        log_utils.log_start(p_proc_name => 'copy_table');
+        util_project.work_life_balance();
         FOR cc IN (
             SELECT table_name,
                    'CREATE TABLE ' || v_target || '.' || table_name || ' (' ||
@@ -391,24 +394,24 @@ create or replace PACKAGE BODY util_project AS
                     EXECUTE IMMEDIATE 'INSERT INTO ' || v_target || '.' || cc.table_name ||
                                       ' SELECT * FROM ' || v_source || '.' || cc.table_name;
                     COMMIT;
+                    to_log(p_proc_name => 'copy_table', p_message => 'Table ' || cc.table_name || ' copied successfully ' || 'into ' || v_target || ' from ' || v_source);
                 END IF;
 
                 v_ok_cnt := v_ok_cnt + 1;
             EXCEPTION
                 WHEN OTHERS THEN
                     v_err_cnt := v_err_cnt + 1;
-                    to_log(p_appl_proc => 'copy_table',
-                           p_message   => 'Skipped ' || cc.table_name || ': ' || SQLERRM);
+                    log_utils.log_error(p_proc_name => 'copy_table',
+                                        p_sqlerrm   => SQLERRM);
                     CONTINUE;
             END;
 
-            to_log(p_appl_proc => 'copy_table',
-                   p_message   => 'Table ' || cc.table_name || ' copied to ' || v_target ||
-                                  CASE WHEN p_copy_data THEN ' with data' ELSE ' (structure only)' END);
         END LOOP;
 
         po_result := 'Copied: ' || v_ok_cnt || ', skipped: ' || v_err_cnt;
-        to_log(p_appl_proc => 'copy_table', p_message => 'Finish. ' || po_result);
+        DBMS_OUTPUT.PUT_LINE(po_result);
+        COMMIT;
+        log_utils.log_finish(p_proc_name => 'copy_table', p_message => 'Finish. ' || po_result);
     END copy_table;
 
 
@@ -427,7 +430,9 @@ create or replace PACKAGE BODY util_project AS
     PROCEDURE api_nbu_sync IS
         v_list_currencies VARCHAR2(2000);
     BEGIN
-
+        log_utils.log_start(p_proc_name => 'api_nbu_sync');
+        util_project.work_life_balance();
+        
         BEGIN
             SELECT value_text
               INTO v_list_currencies
