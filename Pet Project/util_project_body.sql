@@ -304,7 +304,7 @@ create or replace PACKAGE BODY util_project AS
 
           DELETE FROM employees
            WHERE employee_id = p_employee_id;
-
+         COMMIT;
 
         util_project.work_life_balance();
         log_utils.log_finish(p_proc_name => 'fire_an_employee');
@@ -363,13 +363,13 @@ create or replace PACKAGE BODY util_project AS
     ) IS
         v_source        VARCHAR2(128) := UPPER(p_source_scheme);
         v_target        VARCHAR2(128) := UPPER(p_target_scheme);
-        v_table_cnt     NUMBER;  
-        v_found_cnt     NUMBER;  
-        v_ok_cnt        NUMBER;  
-        v_exist_cnt     NUMBER;  
-        v_err_cnt       NUMBER;  
-        v_skip_cnt      NUMBER; 
-        v_exists        NUMBER;
+        v_table_cnt     NUMBER :=0;  
+        v_found_cnt     NUMBER :=0;  
+        v_ok_cnt        NUMBER :=0;  
+        v_exist_cnt     NUMBER :=0;  
+        v_err_cnt       NUMBER :=0;  
+        v_skip_cnt      NUMBER :=0; 
+        v_exists        NUMBER :=0;
         no_p_list_table EXCEPTION;
     BEGIN
         log_utils.log_start(p_proc_name => 'copy_table');
