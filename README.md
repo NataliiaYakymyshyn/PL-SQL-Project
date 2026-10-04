@@ -153,14 +153,18 @@ Result: active employees live in `employees`; former employees move to `employee
 
 1. `log_utils.log_start('copy_table')` → record in `logs`.
 2. `util_project.work_life_balance` → check working hours.
-3. Table names from `p_list_table` are split by `table_from_list` and converted to upper case.
-4. Column metadata is read from the `all_tab_columns` dictionary view for the source schema.
-5. For each table a `CREATE TABLE target.table (col type(size), …)` statement is built with `LISTAGG`, handling `VARCHAR2/CHAR` (length), `NUMBER` (precision, scale) and `DATE`.
-6. `EXECUTE IMMEDIATE` creates the table in the target schema.
-7. If `p_copy_data = TRUE` → `INSERT INTO target.table SELECT * FROM source.table` + `COMMIT`.
-8. Success → counter `v_ok_cnt` +1 and `log_utils.log_finish('copy_table')` → record in `logs`.
-9. Failure on a table (e.g. it already exists) → counter `v_err_cnt` +1, `log_utils.log_error` → record in `logs`, and the loop **continues with the next table**.
-10. `po_result` = `Copied: N, skipped: M`; `log_utils.log_finish('copy_table')` → record in `logs`.
+3. Source and target schema names are converted to upper case.
+4. **List validation.** `p_list_table` is split by `table_from_list`; the number of distinct non-empty names is stored in `v_table_cnt`.
+   - empty list → `no_p_list_table` → `log_utils.log_error` → `ORA-20008` "p_list_table parameter should be specified."
+5. Column metadata is read from `all_tab_columns` for the source schema and the requested tables (names are compared in upper case). Names that don't exist in the source schema are not returned.
+6. For each table a `CREATE TABLE target.table (col type(size), …)` statement is built with `LISTAGG` (columns ordered by `column_id`), handling `VARCHAR2/CHAR` (length), `NUMBER` (precision, scale — omitted if not defined) and `DATE`.
+7. Each table is processed in its own `BEGIN … EXCEPTION` block (counter `v_found_cnt` +1):
+   - **Table already exists** in the target schema (checked in `all_tables`) → counter `v_exist_cnt` +1, `to_log` writes "Table … already exists in … - skipped". This is not treated as an error.
+   - **Table doesn't exist** → `EXECUTE IMMEDIATE` creates it. If `p_copy_data = TRUE` → `INSERT INTO target.table SELECT * FROM source.table` + `COMMIT` (per table). Counter `v_ok_cnt` +1, `to_log` writes "Table … created in … from … (with data)".
+   - **Any error** → counter `v_err_cnt` +1, `log_utils.log_error` writes `TABLE_NAME: SQLERRM` into `logs`, and the loop **continues with the next table**.
+8. Names that were not found in the source schema are counted as `v_skip_cnt = v_table_cnt - v_found_cnt`.
+9. `po_result` = `Copied: N, already existed: N, errors: N, incorrect table name: N`.
+10. `log_utils.log_finish('copy_table')` → record in `logs`.
 
 ---
 
@@ -209,8 +213,19 @@ BEGIN util_project.change_attribute_employee(p_employee_id => 207, p_salary => 7
 BEGIN util_project.fire_an_employee(p_employee_id => 207); END;
 /
 
--- Split list
-SELECT * FROM TABLE(util_project.table_from_list('a, b, c'));
+-- Copy tables between schemas
+DECLARE
+  v_result VARCHAR2(4000);
+BEGIN
+  util_project.copy_table(
+    p_source_scheme => 'HR',
+    p_list_table    => 'employees, jobs, wrong_name',
+    p_copy_data     => TRUE,
+    po_result       => v_result);
+  DBMS_OUTPUT.PUT_LINE(v_result);
+  -- Copied: 2, already existed: 0, errors: 0, incorrect table name: 1
+END;
+/
 
 -- Manual currency sync & check
 BEGIN util_project.api_nbu_sync; END;
