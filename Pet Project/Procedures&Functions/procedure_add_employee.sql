@@ -1,4 +1,4 @@
-create or replace PROCEDURE add_employee(
+    PROCEDURE add_employee(
         p_first_name       IN VARCHAR2,
         p_last_name        IN VARCHAR2,
         p_email            IN VARCHAR2,
@@ -22,7 +22,7 @@ create or replace PROCEDURE add_employee(
     BEGIN
         log_utils.log_start(p_proc_name => 'add_employee');
     
-        work_life_balance();
+        util_project.work_life_balance();
     
         SELECT COUNT(*)
         INTO v_is_exist
@@ -60,8 +60,8 @@ create or replace PROCEDURE add_employee(
             p_hire_date, p_job_id, p_salary, p_commission_pct, p_manager_id, p_department_id
         );
     
-        DBMS_OUTPUT.PUT_LINE('Employee "' || p_first_name || ' ' || p_last_name || '" with job "'
-         || p_job_id || '" and department "' || p_department_id || '" has been added successfully.');
+        DBMS_OUTPUT.PUT_LINE('Employee ' || p_first_name || ' ' || p_last_name || ' with job '
+         || p_job_id || ' and department ' || p_department_id || ' has been added successfully.');
         COMMIT;
         log_utils.log_finish(p_proc_name => 'add_employee');
     
@@ -69,18 +69,18 @@ create or replace PROCEDURE add_employee(
             
         WHEN v_non_existent_job THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
-                               p_sqlerrm => 'Non-existent job_id "' || p_job_id || '"');
-            RAISE_APPLICATION_ERROR(-20001, 'Non-existent job_id "' || p_job_id || '"');
+                               p_sqlerrm => 'Non-existent job_id ' || p_job_id || '');
+            RAISE_APPLICATION_ERROR(-20002, 'Non-existent job_id ' || p_job_id || '');
             
         WHEN v_non_existent_department THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
-                               p_sqlerrm => 'Non-existent department_id "' || p_department_id || '"');
-            RAISE_APPLICATION_ERROR(-20001, 'Non-existent department_id "' || p_department_id || '"');
+                               p_sqlerrm => 'Non-existent department_id ' || p_department_id || '');
+            RAISE_APPLICATION_ERROR(-20003, 'Non-existent department_id ' || p_department_id || '');
             
         WHEN v_salary_error THEN
             log_utils.log_error(p_proc_name => 'add_employee', 
-                               p_sqlerrm => 'Salary ' || p_salary || ' is out of range for job_id "' || p_job_id || '"');
-            RAISE_APPLICATION_ERROR(-20001, 'Salary ' || p_salary || ' is out of range for job_id "' || p_job_id || '".');
+                               p_sqlerrm => 'Salary ' || p_salary || ' is out of range for job_id ' || p_job_id || '');
+            RAISE_APPLICATION_ERROR(-20004, 'Salary ' || p_salary || ' is out of range for job_id ' || p_job_id || '.');
             
         WHEN OTHERS THEN
             log_utils.log_error(p_proc_name => 'add_employee', p_sqlerrm => SQLERRM);
