@@ -490,7 +490,6 @@ create or replace PACKAGE BODY util_project AS
         v_list_currencies VARCHAR2(2000);
     BEGIN
         log_utils.log_start(p_proc_name => 'api_nbu_sync');
-        util_project.work_life_balance();
 
         BEGIN
             SELECT value_text
