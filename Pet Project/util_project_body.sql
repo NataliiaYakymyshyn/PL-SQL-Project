@@ -385,7 +385,7 @@ create or replace PACKAGE BODY util_project AS
         END IF;
 
     FOR w IN (
-        v_wrong_cnt:=v_wrong_cnt+1;
+        
             SELECT DISTINCT UPPER(TRIM(value_list)) AS table_name
               FROM TABLE(util_project.table_from_list(p_list_val => p_list_table))
              WHERE TRIM(value_list) IS NOT NULL
@@ -393,6 +393,7 @@ create or replace PACKAGE BODY util_project AS
                                                      FROM all_tables
                                                     WHERE owner = v_source)
         ) LOOP
+        v_wrong_cnt:=v_wrong_cnt + 1;
             to_log(p_appl_proc => 'copy_table',
                    p_message   => 'Table ' || w.table_name || ' does not exist in ' || v_source || ' - skipped');
     END LOOP;
