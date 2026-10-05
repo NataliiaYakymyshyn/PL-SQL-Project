@@ -98,7 +98,7 @@ CREATE OR REPLACE PROCEDURE copy_table(
                 WHEN OTHERS THEN
                     v_err_cnt := v_err_cnt + 1;
                     log_utils.log_error(p_proc_name => 'copy_table',
-                                        p_sqlerrm   => cc.table_name || ': ' || SQLERRM);
+                                        p_sqlerrm   => 'Error copying table ' || cc.table_name || ': ' || SQLERRM);
                 CONTINUE;
             END;
         END LOOP;
