@@ -368,7 +368,7 @@ create or replace PACKAGE BODY util_project AS
         v_ok_cnt        NUMBER :=0;  
         v_exist_cnt     NUMBER :=0;  
         v_err_cnt       NUMBER :=0;  
-        v_skip_cnt      NUMBER :=0; 
+        v_wrong_cnt     NUMBER :=0; 
         v_exists        NUMBER :=0;
         no_p_list_table EXCEPTION;
     BEGIN
@@ -383,6 +383,20 @@ create or replace PACKAGE BODY util_project AS
         IF v_table_cnt = 0 THEN
             RAISE no_p_list_table;
         END IF;
+
+    FOR w IN (
+        v_wrong_cnt:=v_wrong_cnt+1;
+            SELECT DISTINCT UPPER(TRIM(value_list)) AS table_name
+              FROM TABLE(util_project.table_from_list(p_list_val => p_list_table))
+             WHERE TRIM(value_list) IS NOT NULL
+               AND UPPER(TRIM(value_list)) NOT IN (SELECT table_name
+                                                     FROM all_tables
+                                                    WHERE owner = v_source)
+        ) LOOP
+            to_log(p_appl_proc => 'copy_table',
+                   p_message   => 'Table ' || w.table_name || ' does not exist in ' || v_source || ' - skipped');
+    END LOOP;
+
     FOR cc IN (
             SELECT table_name,
                    'CREATE TABLE ' || v_target || '.' || table_name || ' (' ||
@@ -418,6 +432,7 @@ create or replace PACKAGE BODY util_project AS
                     v_exist_cnt := v_exist_cnt + 1;
                     to_log(p_appl_proc => 'copy_table',
                            p_message   => 'Table ' || cc.table_name || ' already exists in ' || v_target || ' - skipped');
+
                 ELSE
                     EXECUTE IMMEDIATE cc.ddl_code;
     
@@ -441,13 +456,11 @@ create or replace PACKAGE BODY util_project AS
                                         p_sqlerrm   => cc.table_name || ': ' || SQLERRM);
             END;
         END LOOP;
-    
-        v_skip_cnt := v_table_cnt - v_found_cnt;
-    
+
         po_result := 'Copied: '                || v_ok_cnt    ||
                      ', already existed: '     || v_exist_cnt ||
                      ', errors: '              || v_err_cnt   ||
-                     ', incorrect table name: '|| v_skip_cnt;
+                     ', incorrect table name: '|| v_wrong_cnt;
     
         log_utils.log_finish(p_proc_name => 'copy_table');
     
